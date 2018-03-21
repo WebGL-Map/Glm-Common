@@ -41,7 +41,7 @@ import java.security.cert.CertificateException;
 public class SslModule {
 
     /**
-     * Attempts to get an {@link SSLContext} from the jvm parameters.<br></br>
+     * Attempts to get an {@link SSLContext} from the jvm parameters.<br>
      * JVM Parameters:
      * <ul>
      *     <li>-Djavax.net.ssl.keyStore</li>

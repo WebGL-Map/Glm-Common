@@ -56,7 +56,8 @@ public abstract class GlmServer extends WebSocketServer implements WsServer {
     /**
      * Creates a new Gl server.
      *
-     * @param address The address to bind to.
+     * @param address            the address to bind to.
+     * @param wsCommandRegistrar the handler for all incoming commands.
      */
     public GlmServer(@Nonnull final InetSocketAddress address, @Nonnull final WsCommandRegistrar wsCommandRegistrar) {
         super(address);

@@ -57,7 +57,7 @@ public abstract class CommandRegistrar implements WsCommandRegistrar {
     /**
      * Creates a new gl server command registrar.
      */
-    CommandRegistrar() {
+    protected CommandRegistrar() {
         this.commandMap = new ConcurrentHashMap<>();
         this.callMap = new ConcurrentHashMap<>();
     }
@@ -102,7 +102,8 @@ public abstract class CommandRegistrar implements WsCommandRegistrar {
             final long currentTime = System.currentTimeMillis();
             final long pastTime = callMap.get(connection.getRemoteSocketAddress()).get(command);
             if (currentTime - pastTime < wsServerCommand.getInterval()) {
-                punishClient(connection, commandNode);
+                punishClient(connection, command, commandNode);
+                return;
             }
         }
         // Update client call times
@@ -112,10 +113,11 @@ public abstract class CommandRegistrar implements WsCommandRegistrar {
     }
 
     /**
-     * Push a client for calling a command to often.
+     * Push a client for calling a command to often. Tell client that they are calling a function too fast.
      *
      * @param connection  the {@link WebSocket} instance this event is occurring on.
+     * @param command     the command which the client is asking for; for quick reference.
      * @param commandNode the {@link JsonNode} for the command and parameters.
      */
-    protected abstract void punishClient(@Nonnull final WebSocket connection, @Nonnull final JsonNode commandNode);
+    protected abstract void punishClient(@Nonnull final WebSocket connection, @Nonnull final String command, @Nonnull final JsonNode commandNode);
 }

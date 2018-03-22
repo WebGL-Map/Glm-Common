@@ -98,7 +98,7 @@ public class GzipGlmChunk implements GlmChunk {
             return original;
         }
         // Attempt to compress string
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream(); GZIPOutputStream gzip = new GZIPOutputStream(out)) {
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream(); final GZIPOutputStream gzip = new GZIPOutputStream(out)) {
             gzip.write(original.getBytes());
             gzip.close();
             // Convert to base64 string
@@ -121,7 +121,7 @@ public class GzipGlmChunk implements GlmChunk {
             return "";
         }
         // Attempt to compress string
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream(); GZIPOutputStream gzip = new GZIPOutputStream(out)) {
+        try (final ByteArrayOutputStream out = new ByteArrayOutputStream(); final GZIPOutputStream gzip = new GZIPOutputStream(out)) {
             gzip.write(heights);
             gzip.close();
             // Convert to base64 string

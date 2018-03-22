@@ -30,6 +30,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 /**
  * Unifies sql related operations so all implementations are on the same page.
@@ -302,11 +303,11 @@ public final class SqlModule {
      * @return the newly built sql get chunk query.
      */
     @Nonnull
-    public static String getNewGetChunks(@Nonnull final int... positions) {
+    public static String getNewGetChunks(@Nonnull final List<Integer> positions) {
         final StringBuilder builder = new StringBuilder(GET_CHUNKS).append("(");
         int i = 0;
-        while (i < positions.length) {
-            builder.append("POINT(").append(positions[i++]).append(',').append(positions[i++]).append("),");
+        while (i < positions.size()) {
+            builder.append("POINT(").append(positions.get(i++)).append(',').append(positions.get(i++)).append("),");
         }
         // Remove extra character
         builder.deleteCharAt(builder.length() - 1).append(");");

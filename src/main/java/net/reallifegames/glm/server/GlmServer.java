@@ -51,7 +51,7 @@ public abstract class GlmServer extends WebSocketServer implements WsServer {
     /**
      * The current number if connected clients.
      */
-    private int currentConnections;
+    protected int currentConnections;
 
     /**
      * Creates a new Gl server.
@@ -94,5 +94,13 @@ public abstract class GlmServer extends WebSocketServer implements WsServer {
     @Override
     public int getCurrentConnections() {
         return currentConnections;
+    }
+
+    /**
+     * @return the handler for all incoming commands.
+     */
+    @Nonnull
+    public WsCommandRegistrar getRegistrar() {
+        return registrar;
     }
 }

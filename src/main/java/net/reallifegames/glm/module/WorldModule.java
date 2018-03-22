@@ -43,7 +43,7 @@ public class WorldModule {
      * The cache of {@link GlmChunk}s. So we do not need to poll the server every time.
      */
     @Nonnull
-    private static final ConcurrentHashMap<String, HashMap<String, GlmChunk>> cache = new ConcurrentHashMap<>();
+    protected static final ConcurrentHashMap<String, HashMap<String, GlmChunk>> cache = new ConcurrentHashMap<>();
 
     /**
      * Attempts to build a {@link GlmChunk} from the following information. Bypasses config checks and directly

@@ -98,6 +98,8 @@ public abstract class CommandRegistrar implements WsCommandRegistrar {
         final WsServerCommand wsServerCommand = commandMap.get(command);
         // punish client for not respecting settings
         if (wsServerCommand.getInterval() > 0) {
+            // Check if command entry exists for connection
+            callMap.get(connection.getRemoteSocketAddress()).putIfAbsent(command, 0L);
             // Setup vars for checking.
             final long currentTime = System.currentTimeMillis();
             final long pastTime = callMap.get(connection.getRemoteSocketAddress()).get(command);

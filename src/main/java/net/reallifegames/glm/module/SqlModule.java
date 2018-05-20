@@ -45,9 +45,14 @@ public final class SqlModule {
     public static final int VERSION = 1;
 
     /**
-     * The sql create table query.
+     * The sql create chunks table query.
      */
-    private static String CREATE_TABLE;
+    private static String CREATE_CHUNKS_TABLE;
+
+    /**
+     * The sql create ban table query.
+     */
+    private static String CREATE_BAN_TABLE;
 
     /**
      * Sql chunk exists query.
@@ -95,11 +100,14 @@ public final class SqlModule {
      * @param databaseChunkPrefix the prefix for yhe chunks table.
      */
     public static void init(@Nonnull final String databaseChunkPrefix) {
-        CREATE_TABLE = "CREATE TABLE IF NOT EXISTS `" + databaseChunkPrefix + "glm_chunks` " +
+        CREATE_CHUNKS_TABLE = "CREATE TABLE IF NOT EXISTS `" + databaseChunkPrefix + "glm_chunks` " +
                 "(`world_id` CHAR(36) NOT NULL,`position` POINT NOT NULL," +
                 "`generation_time` BIGINT NOT NULL,`chunk_data` longtext NOT NULL," +
                 "`height_data` longtext NOT NULL,`version` TINYINT NOT NULL," +
                 "INDEX `world_id` (`world_id`),INDEX `position` (`position`)) ENGINE = InnoDB;";
+        CREATE_BAN_TABLE = "CREATE TABLE IF NOT EXISTS `" + databaseChunkPrefix + "glm_bans` " +
+                "(`ip_address` VARCHAR(45) NOT NULL , `client_id` CHAR(36) NOT NULL , PRIMARY KEY " +
+                "(`ip_address`), INDEX (`client_id`)) ENGINE = InnoDB;";
         CHUNK_EXISTS = "SELECT EXISTS(SELECT 1 FROM `" + databaseChunkPrefix + "glm_chunks` WHERE `world_id` = ? AND " +
                 "`position` = POINT(?, ?));";
         CHUNK_INSERT = "INSERT INTO `" + databaseChunkPrefix + "glm_chunks` (`world_id`, `position`, `generation_time`, " +
@@ -116,10 +124,18 @@ public final class SqlModule {
     }
 
     /**
-     * @return the sql create table query.
+     * @return the sql create chunks table query.
      */
-    public static String getCreateTableSqlString() {
-        return CREATE_TABLE;
+    public static String getCreateChunksTableSqlString() {
+        return CREATE_CHUNKS_TABLE;
+    }
+
+    /**
+     *
+     * @return the sql create ban table query.
+     */
+    public static String getCreateBanTableSqlString() {
+        return CREATE_BAN_TABLE;
     }
 
     /**
@@ -179,14 +195,26 @@ public final class SqlModule {
     }
 
     /**
-     * Creates the sql table.
+     * Creates the chunk sql table.
      *
      * @param connection the sql database connection.
      * @throws SQLException if a database access error occurs; this method is called on a closed PreparedStatement or
      *                      the SQL statement returns a ResultSet object.
      */
-    public static void createTable(@Nonnull final Connection connection) throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement(CREATE_TABLE);
+    public static void createChunksTable(@Nonnull final Connection connection) throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(CREATE_CHUNKS_TABLE);
+        preparedStatement.executeUpdate();
+    }
+
+    /**
+     * Creates the ban sql table.
+     *
+     * @param connection the sql database connection.
+     * @throws SQLException if a database access error occurs; this method is called on a closed PreparedStatement or
+     *                      the SQL statement returns a ResultSet object.
+     */
+    public static void createBansTable(@Nonnull final Connection connection) throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(CREATE_CHUNKS_TABLE);
         preparedStatement.executeUpdate();
     }
 

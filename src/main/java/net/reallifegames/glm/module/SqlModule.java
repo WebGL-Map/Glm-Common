@@ -26,6 +26,7 @@ package net.reallifegames.glm.module;
 import net.reallifegames.glm.api.GlmChunk;
 
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -95,6 +96,16 @@ public final class SqlModule {
     private static String DELETE_ROWS;
 
     /**
+     * Sql ban insert.
+     */
+    private static String INSERT_BAN;
+
+    /**
+     * Sql delete ban from ban table.
+     */
+    private static String DELETE_BAN;
+
+    /**
      * Initializes this class and the query strings.
      *
      * @param databaseChunkPrefix the prefix for yhe chunks table.
@@ -121,6 +132,8 @@ public final class SqlModule {
         COUNT_TOTAL_ROWS = "SELECT COUNT(*) FROM `" + databaseChunkPrefix + "glm_chunks`";
         COUNT_ROWS = "SELECT COUNT(*) FROM `" + databaseChunkPrefix + "glm_chunks` WHERE `world_id` = ?;";
         DELETE_ROWS = "DELETE FROM `" + databaseChunkPrefix + "glm_chunks` WHERE `world_id`=? AND `position` IN ";
+        INSERT_BAN = "INSERT INTO `" + databaseChunkPrefix + "glm_bans`(`ip_address`, `client_id`) VALUES (?, ?)";
+        DELETE_BAN = "DELETE FROM `" + databaseChunkPrefix + "glm_bans` WHERE ";
     }
 
     /**
@@ -131,7 +144,6 @@ public final class SqlModule {
     }
 
     /**
-     *
      * @return the sql create ban table query.
      */
     public static String getCreateBanTableSqlString() {
@@ -366,5 +378,51 @@ public final class SqlModule {
         preparedStatement.setString(1, worldId);
         // Execute query
         preparedStatement.executeUpdate();
+    }
+
+    /**
+     * Inserts a ban into the ban table.
+     *
+     * @param connection the sql database connection.
+     * @param ipAddress  the ip address of the client.
+     * @param uuid       the uuid of the client map.
+     * @throws SQLException if a database access error occurs; this method is called on a closed PreparedStatement or
+     *                      the SQL statement returns a ResultSet object.
+     */
+    public static void insertBan(@Nonnull final Connection connection, @Nonnull final String ipAddress,
+                                 @Nonnull final String uuid) throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(INSERT_BAN);
+        preparedStatement.setString(1, ipAddress);
+        preparedStatement.setString(2, uuid);
+        // Execute update
+        preparedStatement.executeUpdate();
+    }
+
+    /**
+     * Removes a ban from the ban table.
+     *
+     * @param connection the sql database connection.
+     * @param ipAddress  the ip address of the client.
+     * @param uuid       the uuid of the client map.
+     * @throws SQLException if a database access error occurs; this method is called on a closed PreparedStatement or
+     *                      the SQL statement returns a ResultSet object.
+     */
+    public static void removeBan(@Nonnull final Connection connection, @Nullable final String ipAddress,
+                                 @Nullable final String uuid) throws SQLException {
+        if (ipAddress != null || uuid != null) {
+            StringBuilder NEW_DELETE_BAN = new StringBuilder(DELETE_BAN);
+            boolean isIp = false;
+            if(ipAddress != null) {
+                NEW_DELETE_BAN.append("`ip_address` = ?");
+                isIp = true;
+            }
+            if(isIp) NEW_DELETE_BAN.append("AND ");
+            if(uuid != null) NEW_DELETE_BAN.append("`client_id` = ?;");
+            PreparedStatement preparedStatement = connection.prepareStatement(NEW_DELETE_BAN.toString());
+            if(isIp) preparedStatement.setString(1, ipAddress);
+            preparedStatement.setString(isIp ? 2 : 1, uuid);
+            // Execute update
+            preparedStatement.executeUpdate();
+        }
     }
 }

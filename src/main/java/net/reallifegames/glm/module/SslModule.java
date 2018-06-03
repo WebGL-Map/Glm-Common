@@ -41,38 +41,15 @@ import java.security.cert.CertificateException;
 public class SslModule {
 
     /**
-     * Attempts to get an {@link SSLContext} from the jvm parameters.<br>
-     * JVM Parameters:
-     * <ul>
-     *     <li>-Djavax.net.ssl.keyStore</li>
-     *     <li>-Djavax.net.ssl.keyStoreType</li>
-     *     <li>-Djavax.net.ssl.keyStorePassword</li>
-     * </ul>
+     * Attempts to get an {@link SSLContext} from default.
      *
      * @return {@link SSLContext} from the given system properties.
      *
-     * @throws IllegalStateException if an error occurred and the ssl context could not be created.
+     * @throws NoSuchAlgorithmException this exception is thrown when a particular cryptographic algorithm is requested
+     *                                  but is not available in the environment.
      */
     @Nonnull
-    public static SSLContext getSSLContextFromKeystore() throws IllegalStateException {
-        final String KEY_STORE_TYPE = System.getProperty("javax.net.ssl.keyStoreType", "JKS");
-        final String KEY_STORE = System.getProperty("javax.net.ssl.keyStore");
-        final String KEY_STORE_PASS = System.getProperty("javax.net.ssl.keyStorePassword");
-        KeyStore ks;
-        SSLContext sslContext;
-        try {
-            ks = KeyStore.getInstance(KEY_STORE_TYPE);
-            ks.load(Files.newInputStream(Paths.get("..", KEY_STORE)), KEY_STORE_PASS.toCharArray());
-            KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
-            kmf.init(ks, KEY_STORE_PASS.toCharArray());
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance("SunX509");
-            tmf.init(ks);
-
-            sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), null);
-        } catch (KeyStoreException | IOException | CertificateException | NoSuchAlgorithmException | KeyManagementException | UnrecoverableKeyException e) {
-            throw new IllegalStateException();
-        }
-        return sslContext;
+    public static SSLContext getSSLContextFromKeystore() throws NoSuchAlgorithmException {
+        return SSLContext.getDefault();
     }
 }

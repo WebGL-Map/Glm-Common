@@ -117,7 +117,7 @@ public final class SqlModule {
                 "`height_data` longtext NOT NULL,`version` TINYINT NOT NULL," +
                 "INDEX `world_id` (`world_id`),INDEX `position` (`position`)) ENGINE = InnoDB;";
         CREATE_BAN_TABLE = "CREATE TABLE IF NOT EXISTS `" + databaseChunkPrefix + "glm_bans` " +
-                "(`ip_address` VARCHAR(45) NOT NULL , `client_id` CHAR(36) NOT NULL , PRIMARY KEY " +
+                "(`ip_address` VARCHAR(45) NOT NULL , `client_id` CHAR(36) NOT NULL , INDEX " +
                 "(`ip_address`), INDEX (`client_id`)) ENGINE = InnoDB;";
         CHUNK_EXISTS = "SELECT EXISTS(SELECT 1 FROM `" + databaseChunkPrefix + "glm_chunks` WHERE `world_id` = ? AND " +
                 "`position` = POINT(?, ?));";

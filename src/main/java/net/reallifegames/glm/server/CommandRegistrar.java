@@ -46,13 +46,13 @@ public abstract class CommandRegistrar implements WsCommandRegistrar {
      * The map of commands to command handler objects.
      */
     @Nonnull
-    private final ConcurrentMap<String, WsServerCommand> commandMap;
+    protected final ConcurrentMap<String, WsServerCommand> commandMap;
 
     /**
      * The map of commands to command handler objects.
      */
     @Nonnull
-    private final ConcurrentMap<InetSocketAddress, Map<String, Long>> callMap;
+    protected final ConcurrentMap<InetSocketAddress, Map<String, Long>> callMap;
 
     /**
      * Creates a new gl server command registrar.

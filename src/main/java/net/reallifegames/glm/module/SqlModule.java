@@ -46,6 +46,17 @@ public final class SqlModule {
     public static final int VERSION = 1;
 
     /**
+     * The sql version constant.
+     */
+    @Nonnull
+    public static final String SQL_VERSION_CONSTANT = "sql_version";
+
+    /**
+     * The sql create constants table query.
+     */
+    private static String CREATE_CONSTANTS_TABLE;
+
+    /**
      * The sql create chunks table query.
      */
     private static String CREATE_CHUNKS_TABLE;
@@ -54,6 +65,11 @@ public final class SqlModule {
      * The sql create ban table query.
      */
     private static String CREATE_BAN_TABLE;
+
+    /**
+     * Sql insert or default sql constants query.
+     */
+    private static String INSERT_OR_DEFAULT_CONSTANTS;
 
     /**
      * Sql chunk exists query.
@@ -111,24 +127,28 @@ public final class SqlModule {
      * @param databaseChunkPrefix the prefix for yhe chunks table.
      */
     public static void init(@Nonnull final String databaseChunkPrefix) {
+        CREATE_CONSTANTS_TABLE = "CREATE TABLE IF NOT EXISTS `" + databaseChunkPrefix + "glm_constants` (`kkey` " +
+                "VARCHAR(255) NOT NULL, `value` VARCHAR(255) NOT NULL, PRIMARY KEY (`kkey`)) ENGINE = InnoDB;";
         CREATE_CHUNKS_TABLE = "CREATE TABLE IF NOT EXISTS `" + databaseChunkPrefix + "glm_chunks` " +
-                "(`world_id` CHAR(36) NOT NULL,`position` POINT NOT NULL," +
-                "`generation_time` BIGINT NOT NULL,`chunk_data` longtext NOT NULL," +
-                "`height_data` longtext NOT NULL,`version` TINYINT NOT NULL," +
-                "INDEX `world_id` (`world_id`),INDEX `position` (`position`)) ENGINE = InnoDB;";
+                "(`world_id` CHAR(36) NOT NULL,`chunk_type` VARCHAR(32) NOT NULL,`position` POINT NOT NULL," +
+                "`generation_time` BIGINT NOT NULL,`chunk_data` longtext NOT NULL,`height_data` longtext NOT NULL," +
+                "`biome_data` longtext NOT NULL,`index_data` longtext NOT NULL,INDEX `world_id` (`world_id`)," +
+                "INDEX `position` (`position`),INDEX `chunk_type` (`chunk_type`)) ENGINE = InnoDB;";
         CREATE_BAN_TABLE = "CREATE TABLE IF NOT EXISTS `" + databaseChunkPrefix + "glm_bans` " +
                 "(`ip_address` VARCHAR(45) NOT NULL , `client_id` CHAR(36) NOT NULL , INDEX " +
                 "(`ip_address`), INDEX (`client_id`)) ENGINE = InnoDB;";
         CHUNK_EXISTS = "SELECT EXISTS(SELECT 1 FROM `" + databaseChunkPrefix + "glm_chunks` WHERE `world_id` = ? AND " +
-                "`position` = POINT(?, ?));";
-        CHUNK_INSERT = "INSERT INTO `" + databaseChunkPrefix + "glm_chunks` (`world_id`, `position`, `generation_time`, " +
-                "`chunk_data`, `height_data`, `version`) VALUES (?, POINT(?, ?), ?, ?, ?, ?)";
+                "`chunk_type`=? AND `position` = POINT(?, ?));";
+        CHUNK_INSERT = "INSERT INTO `" + databaseChunkPrefix + "glm_chunks` (`world_id`, `chunk_type`, `position`, " +
+                "`generation_time`, `chunk_data`, `height_data`, `biome_data`, `index_data`) VALUES " +
+                "(?, ?, POINT(?, ?), ?, ?, ?, ?, ?)";
         CHUNK_UPDATE = "UPDATE `" + databaseChunkPrefix + "glm_chunks` SET `generation_time`=?,`chunk_data`=?," +
-                "`height_data`=?,`version`=? WHERE `world_id` = ? AND `position` = POINT(?, ?);";
-        GET_CHUNK = "SELECT `generation_time`, `chunk_data`, `height_data` FROM `" + databaseChunkPrefix +
-                "glm_chunks` WHERE `world_id`=? AND `position`=POINT(?,?);";
-        GET_CHUNKS = "SELECT `generation_time`, ST_X(`position`) as X, ST_Y(`position`) as Z, `chunk_data`, `height_data` FROM `" +
-                databaseChunkPrefix + "glm_chunks` WHERE `world_id`=? AND `position` IN ";
+                "`height_data`=?,`biome_data`=?,`index_data`=? WHERE `world_id` = ? AND `chunk_type` = ? AND `position` = POINT(?, ?);";
+        GET_CHUNK = "SELECT `generation_time`, `chunk_data`, `height_data`, `biome_data`, `index_data` FROM `" + databaseChunkPrefix +
+                "glm_chunks` WHERE `world_id`=? AND `chunk_type` = ? AND `position`=POINT(?,?);";
+        GET_CHUNKS = "SELECT `generation_time`, ST_X(`position`) as X, ST_Y(`position`) as Z, `chunk_data`, `height_data`" +
+                ", `biome_data`, `index_data` FROM `" + databaseChunkPrefix + "glm_chunks` WHERE `world_id`=? AND " +
+                "`chunk_type` = ? AND `position` IN ";
         COUNT_TOTAL_ROWS = "SELECT COUNT(*) FROM `" + databaseChunkPrefix + "glm_chunks`";
         COUNT_ROWS = "SELECT COUNT(*) FROM `" + databaseChunkPrefix + "glm_chunks` WHERE `world_id` = ?;";
         DELETE_ROWS = "DELETE FROM `" + databaseChunkPrefix + "glm_chunks` WHERE `world_id`=? AND `position` IN ";
@@ -207,6 +227,19 @@ public final class SqlModule {
     }
 
     /**
+     * Creates the glm constants sql table.
+     *
+     * @param connection the sql database connection.
+     * @throws SQLException if a database access error occurs; this method is called on a closed PreparedStatement or
+     *                      the SQL statement returns a ResultSet object.
+     */
+    public static void createConstantsTable(@Nonnull final Connection connection) throws SQLException {
+        final PreparedStatement preparedStatement = connection.prepareStatement(CREATE_CONSTANTS_TABLE);
+        preparedStatement.executeUpdate();
+        preparedStatement.close();
+    }
+
+    /**
      * Creates the chunk sql table.
      *
      * @param connection the sql database connection.
@@ -214,8 +247,9 @@ public final class SqlModule {
      *                      the SQL statement returns a ResultSet object.
      */
     public static void createChunksTable(@Nonnull final Connection connection) throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement(CREATE_CHUNKS_TABLE);
+        final PreparedStatement preparedStatement = connection.prepareStatement(CREATE_CHUNKS_TABLE);
         preparedStatement.executeUpdate();
+        preparedStatement.close();
     }
 
     /**
@@ -226,15 +260,32 @@ public final class SqlModule {
      *                      the SQL statement returns a ResultSet object.
      */
     public static void createBansTable(@Nonnull final Connection connection) throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement(CREATE_CHUNKS_TABLE);
+        final PreparedStatement preparedStatement = connection.prepareStatement(CREATE_CHUNKS_TABLE);
         preparedStatement.executeUpdate();
+        preparedStatement.close();
+    }
+
+    /**
+     * Attempts to update the sql version constant.
+     *
+     * @param connection the sql database connection.
+     * @throws SQLException if a database access error occurs; this method is called on a closed PreparedStatement or
+     *                      the SQL statement returns a ResultSet object.
+     */
+    public static void setSqlVersion(@Nonnull final Connection connection) throws SQLException {
+        final PreparedStatement updateStatement = connection.prepareStatement(INSERT_OR_DEFAULT_CONSTANTS);
+        updateStatement.setString(1, SQL_VERSION_CONSTANT);
+        updateStatement.setString(2, String.valueOf(VERSION));
+        updateStatement.executeUpdate();
+        updateStatement.close();
     }
 
     /**
      * Checks to see if a row exists.
      *
      * @param connection the sql database connection.
-     * @param worldId    the id of the world
+     * @param worldId    the id of the world.
+     * @param chunkType  the glm chunk type.
      * @param x          the x position of the chunk.
      * @param z          the z position of the chunk.
      * @return true if the row exists false otherwise.
@@ -242,36 +293,43 @@ public final class SqlModule {
      * @throws SQLException if a database access error occurs; this method is called on a closed PreparedStatement or
      *                      the SQL statement returns a ResultSet object.
      */
-    public static boolean rowExists(@Nonnull final Connection connection, @Nonnull final String worldId, final int x,
-                                    final int z) throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement(CHUNK_EXISTS);
+    public static boolean rowExists(@Nonnull final Connection connection, @Nonnull final String worldId,
+                                    @Nonnull final String chunkType, int x, final int z) throws SQLException {
+        final PreparedStatement preparedStatement = connection.prepareStatement(CHUNK_EXISTS);
         // Set parameters
         preparedStatement.setString(1, worldId);
-        preparedStatement.setInt(2, x);
-        preparedStatement.setInt(3, z);
+        preparedStatement.setString(2, chunkType);
+        preparedStatement.setInt(3, x);
+        preparedStatement.setInt(4, z);
         // Execute query
-        ResultSet results = preparedStatement.executeQuery();
-        return results.next() && results.getBoolean(1);
+        final ResultSet results = preparedStatement.executeQuery();
+        final boolean returnVal = results.next() && results.getBoolean(1);
+        results.close();
+        preparedStatement.close();
+        return returnVal;
     }
 
     /**
      * Attempts to update a chunk in the sql database.
      *
      * @param connection the sql database connection.
-     * @param worldId    the id of the world
+     * @param worldId    the id of the world.
+     * @param chunkType  the glm chunk type.
      * @param x          the x position of the chunk.
      * @param z          the z position of the chunk.
      * @param glChunk    the data to update the sql row with.
      * @throws SQLException if a database access error occurs; this method is called on a closed PreparedStatement or
      *                      the SQL statement returns a ResultSet object.
      */
-    public static void updateGlChunk(@Nonnull final Connection connection, @Nonnull final String worldId, final int x,
-                                     final int z, @Nonnull final GlmChunk glChunk) throws SQLException {
+    public static void updateGlChunk(@Nonnull final Connection connection, @Nonnull final String worldId,
+                                     @Nonnull final String chunkType, final int x, final int z,
+                                     @Nonnull final GlmChunk glChunk) throws SQLException {
         PreparedStatement preparedStatement = connection.prepareStatement(CHUNK_EXISTS);
         // Set parameters
         preparedStatement.setString(1, worldId);
-        preparedStatement.setInt(2, x);
-        preparedStatement.setInt(3, z);
+        preparedStatement.setString(2, chunkType);
+        preparedStatement.setInt(3, x);
+        preparedStatement.setInt(4, z);
         // Execute query
         ResultSet results = preparedStatement.executeQuery();
         if (results.next()) {
@@ -279,24 +337,28 @@ public final class SqlModule {
                 preparedStatement = connection.prepareStatement(CHUNK_UPDATE);
                 // Set parameters
                 preparedStatement.setLong(1, glChunk.getChunkGenerationTime());
-                preparedStatement.setString(2, glChunk.getChunkData());
-                preparedStatement.setString(3, glChunk.getChunkHeightData());
-                preparedStatement.setInt(4, VERSION);
-                preparedStatement.setString(5, worldId);
-                preparedStatement.setInt(6, x);
-                preparedStatement.setInt(7, z);
+                preparedStatement.setString(2, glChunk.getBlockData());
+                preparedStatement.setString(3, glChunk.getBlockHeightData());
+                preparedStatement.setString(4, glChunk.getBlockBiomeData());
+                preparedStatement.setString(5, glChunk.getBlockIndices());
+                preparedStatement.setString(6, worldId);
+                preparedStatement.setString(7, chunkType);
+                preparedStatement.setInt(8, x);
+                preparedStatement.setInt(9, z);
                 // Execute query
                 preparedStatement.executeUpdate();
             } else {
                 preparedStatement = connection.prepareStatement(CHUNK_INSERT);
                 // Set parameters
                 preparedStatement.setString(1, worldId);
-                preparedStatement.setInt(2, x);
-                preparedStatement.setInt(3, z);
-                preparedStatement.setLong(4, glChunk.getChunkGenerationTime());
-                preparedStatement.setString(5, glChunk.getChunkData());
-                preparedStatement.setString(6, glChunk.getChunkHeightData());
-                preparedStatement.setInt(7, VERSION);
+                preparedStatement.setString(2, chunkType);
+                preparedStatement.setInt(3, x);
+                preparedStatement.setInt(4, z);
+                preparedStatement.setLong(5, glChunk.getChunkGenerationTime());
+                preparedStatement.setString(6, glChunk.getBlockData());
+                preparedStatement.setString(7, glChunk.getBlockHeightData());
+                preparedStatement.setString(8, glChunk.getBlockBiomeData());
+                preparedStatement.setString(9, glChunk.getBlockIndices());
                 // Execute query
                 preparedStatement.executeUpdate();
             }
@@ -313,10 +375,13 @@ public final class SqlModule {
      *                      the SQL statement returns a ResultSet object.
      */
     public static int countTotalRows(@Nonnull final Connection connection) throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement(COUNT_TOTAL_ROWS);
+        final PreparedStatement preparedStatement = connection.prepareStatement(COUNT_TOTAL_ROWS);
         // Execute query
-        ResultSet results = preparedStatement.executeQuery();
-        return results.next() ? results.getInt(1) : 0;
+        final ResultSet results = preparedStatement.executeQuery();
+        final int returnVal = results.next() ? results.getInt(1) : 0;
+        results.close();
+        preparedStatement.close();
+        return returnVal;
     }
 
     /**
@@ -331,11 +396,14 @@ public final class SqlModule {
      */
     public static int countRowsForWorld(@Nonnull final Connection connection, @Nonnull final String worldId)
             throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement(COUNT_ROWS);
+        final PreparedStatement preparedStatement = connection.prepareStatement(COUNT_ROWS);
         preparedStatement.setString(1, worldId);
         // Execute query
-        ResultSet results = preparedStatement.executeQuery();
-        return results.next() ? results.getInt(1) : 0;
+        final ResultSet results = preparedStatement.executeQuery();
+        final int returnVal = results.next() ? results.getInt(1) : 0;
+        results.close();
+        preparedStatement.close();
+        return returnVal;
     }
 
     /**
@@ -374,10 +442,11 @@ public final class SqlModule {
                 builder.append("POINT(").append(i).append(',').append(j).append("),");
             }
         }
-        PreparedStatement preparedStatement = connection.prepareStatement(DELETE_ROWS);
+        final PreparedStatement preparedStatement = connection.prepareStatement(DELETE_ROWS);
         preparedStatement.setString(1, worldId);
         // Execute query
         preparedStatement.executeUpdate();
+        preparedStatement.close();
     }
 
     /**
@@ -391,11 +460,12 @@ public final class SqlModule {
      */
     public static void insertBan(@Nonnull final Connection connection, @Nonnull final String ipAddress,
                                  @Nonnull final String uuid) throws SQLException {
-        PreparedStatement preparedStatement = connection.prepareStatement(INSERT_BAN);
+        final PreparedStatement preparedStatement = connection.prepareStatement(INSERT_BAN);
         preparedStatement.setString(1, ipAddress);
         preparedStatement.setString(2, uuid);
         // Execute update
         preparedStatement.executeUpdate();
+        preparedStatement.close();
     }
 
     /**
@@ -412,17 +482,24 @@ public final class SqlModule {
         if (ipAddress != null || uuid != null) {
             StringBuilder NEW_DELETE_BAN = new StringBuilder(DELETE_BAN);
             boolean isIp = false;
-            if(ipAddress != null) {
+            if (ipAddress != null) {
                 NEW_DELETE_BAN.append("`ip_address` = ?");
                 isIp = true;
             }
-            if(isIp) NEW_DELETE_BAN.append("AND ");
-            if(uuid != null) NEW_DELETE_BAN.append("`client_id` = ?;");
-            PreparedStatement preparedStatement = connection.prepareStatement(NEW_DELETE_BAN.toString());
-            if(isIp) preparedStatement.setString(1, ipAddress);
+            if (isIp) {
+                NEW_DELETE_BAN.append("AND ");
+            }
+            if (uuid != null) {
+                NEW_DELETE_BAN.append("`client_id` = ?;");
+            }
+            final PreparedStatement preparedStatement = connection.prepareStatement(NEW_DELETE_BAN.toString());
+            if (isIp) {
+                preparedStatement.setString(1, ipAddress);
+            }
             preparedStatement.setString(isIp ? 2 : 1, uuid);
             // Execute update
             preparedStatement.executeUpdate();
+            preparedStatement.close();
         }
     }
 }

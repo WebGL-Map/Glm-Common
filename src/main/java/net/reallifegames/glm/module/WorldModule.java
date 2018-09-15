@@ -46,22 +46,27 @@ public class WorldModule {
     protected static final ConcurrentHashMap<String, HashMap<String, GlmChunk>> cache = new ConcurrentHashMap<>();
 
     /**
-     * Attempts to build a {@link GlmChunk} from the following information. Bypasses config checks and directly
-     * inserts the chunk into the cache.
+     * Attempts to build a {@link GlmChunk} from the following information. Bypasses config checks and directly inserts
+     * the chunk into the cache.
      *
      * @param worldId         the id of the world for the chunk.
      * @param x               the x position.
      * @param z               the z position.
      * @param generationTime  the time of creation.
+     * @param glmChunkId      the id / type of the glm chunk.
      * @param chunkData       the data for the chunk.
      * @param chunkHeightData the height data for the chunk.
+     * @param blockBiomeData  the block biome data which the client can use for rendering.
+     * @param blockIndexData  the block index data which the client can use for positioning.
      * @return the newly created {@link GlmChunk}.
      */
     @Nonnull
     public static GlmChunk buildFromParametersUnsafe(@Nonnull final String worldId, int x, int z, long generationTime,
-                                                     @Nonnull final String chunkData, @Nonnull final String chunkHeightData) {
+                                                     @Nonnull final String glmChunkId, @Nonnull final String chunkData,
+                                                     @Nonnull final String chunkHeightData, @Nonnull final String blockBiomeData,
+                                                     @Nonnull final String blockIndexData) {
         final String chunkId = getChunkCacheId(x, 0, z);
-        final GlmChunk glChunk = new GzipGlmChunk(generationTime, chunkData, chunkHeightData);
+        final GlmChunk glChunk = new GzipGlmChunk(glmChunkId, generationTime, chunkData, chunkHeightData, blockBiomeData, blockIndexData);
         cache.get(worldId).put(chunkId, glChunk);
         return glChunk;
     }
@@ -73,18 +78,23 @@ public class WorldModule {
      * @param x                    the x position.
      * @param z                    the z position.
      * @param generationTime       the time of creation.
+     * @param glmChunkId           the id / type of the glm chunk.
      * @param chunkData            the data for the chunk.
      * @param chunkHeightData      the height data for the chunk.
+     * @param blockBiomeData       the block biome data which the client can use for rendering.
+     * @param blockIndexData       the block index data which the client can use for positioning.
      * @param isCacheLimited       is the cache size limited.
      * @param maximumChunksInCache if the cache size is limited what is the size.
      * @return the newly created {@link GlmChunk}.
      */
     @Nonnull
     public static GlmChunk buildFromParameters(@Nonnull final String worldId, int x, int z, long generationTime,
-                                               @Nonnull final String chunkData, @Nonnull final String chunkHeightData,
-                                               final boolean isCacheLimited, final int maximumChunksInCache) {
+                                               @Nonnull final String glmChunkId, @Nonnull final String chunkData,
+                                               @Nonnull final String chunkHeightData, @Nonnull final String blockBiomeData,
+                                               @Nonnull final String blockIndexData, final boolean isCacheLimited,
+                                               final int maximumChunksInCache) {
         final String chunkId = getChunkCacheId(x, 0, z);
-        final GlmChunk glChunk = new GzipGlmChunk(generationTime, chunkData, chunkHeightData);
+        final GlmChunk glChunk = new GzipGlmChunk(glmChunkId, generationTime, chunkData, chunkHeightData, blockBiomeData, blockIndexData);
         if (isCacheLimited) {
             // Check if there is room in the cache
             if (cache.get(worldId).size() < maximumChunksInCache) {

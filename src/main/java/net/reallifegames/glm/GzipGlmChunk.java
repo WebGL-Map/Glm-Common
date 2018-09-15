@@ -39,6 +39,18 @@ import java.util.zip.GZIPOutputStream;
 public class GzipGlmChunk implements GlmChunk {
 
     /**
+     * Static indices for a two dimensional plane.
+     */
+    @Nonnull
+    public static final String TWO_DIMENSIONAL_INDICES = GzipGlmChunk.twoDimensionalIndexGenerator();
+
+    /**
+     * The id / type of this glm chunk.
+     */
+    @Nonnull
+    public final String id;
+
+    /**
      * The time in milliseconds when this snapshot was taken.
      */
     public final long chunkGenerationTime;
@@ -47,25 +59,50 @@ public class GzipGlmChunk implements GlmChunk {
      * The chunk data which the client will render. This data should be compressed using Gzip.
      */
     @Nonnull
-    public final String chunkData;
+    public final String blockData;
 
     /**
      * The chunk height data which the client can use for positioning. This data should be compressed using Gzip.
      */
     @Nonnull
-    public final String chunkHeightData;
+    public final String blockHeightData;
+
+    /**
+     * The block biome data which the client can use for rendering.
+     */
+    public final String blockBiomeData;
+
+    /**
+     * The block index data which the client can use for positioning.
+     */
+    @Nonnull
+    public final String blockIndices;
 
     /**
      * Creates a chunk representation for the client side gl map.
      *
+     * @param id                  the id / type of this glm chunk.
      * @param chunkGenerationTime the time in milliseconds when this snapshot was taken.
-     * @param chunkData           the chunk data which the client will render.
-     * @param chunkHeightData     the height data of the chunk.
+     * @param blockData           the chunk data which the client will render.
+     * @param blockHeightData     the height data of the chunk.
+     * @param blockBiomeData      the block biome data which the client can use for rendering.
+     * @param blockIndices        the block index data which the client can use for positioning.
      */
-    public GzipGlmChunk(final long chunkGenerationTime, @Nonnull final String chunkData, @Nonnull final String chunkHeightData) {
+    public GzipGlmChunk(@Nonnull final String id, final long chunkGenerationTime, @Nonnull final String blockData,
+                        @Nonnull final String blockHeightData, @Nonnull final String blockBiomeData,
+                        @Nonnull final String blockIndices) {
+        this.id = id;
         this.chunkGenerationTime = chunkGenerationTime;
-        this.chunkData = chunkData;
-        this.chunkHeightData = chunkHeightData;
+        this.blockData = blockData;
+        this.blockHeightData = blockHeightData;
+        this.blockBiomeData = blockBiomeData;
+        this.blockIndices = blockIndices;
+    }
+
+    @Nonnull
+    @Override
+    public String getId() {
+        return id;
     }
 
     @Override
@@ -75,14 +112,39 @@ public class GzipGlmChunk implements GlmChunk {
 
     @Nonnull
     @Override
-    public String getChunkData() {
-        return chunkData;
+    public String getBlockData() {
+        return blockData;
     }
 
     @Nonnull
     @Override
-    public String getChunkHeightData() {
-        return chunkHeightData;
+    public String getBlockHeightData() {
+        return blockHeightData;
+    }
+
+    @Nonnull
+    @Override
+    public String getBlockIndices() {
+        return blockIndices;
+    }
+
+    @Nonnull
+    @Override
+    public String getBlockBiomeData() {
+        return blockBiomeData;
+    }
+
+    /**
+     * @return generated indices for a two dimensional plane.
+     */
+    @Nonnull
+    private static String twoDimensionalIndexGenerator() {
+        final StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < 256; i++) {
+            builder.append(i).append(',');
+        }
+        builder.deleteCharAt(builder.length() - 1);
+        return builder.toString();
     }
 
     /**
@@ -115,7 +177,7 @@ public class GzipGlmChunk implements GlmChunk {
      * @return the new height encoded string.
      */
     @Nonnull
-    public static String compressHeightData(@Nonnull final byte[] heights) {
+    public static String compressByteArray(@Nonnull final byte[] heights) {
         // Don't compress empty string
         if (heights.length == 0) {
             return "";
